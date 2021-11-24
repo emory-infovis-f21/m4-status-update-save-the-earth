@@ -43,23 +43,126 @@
                                       </select>
                                     </div>
                                   </div>
-                                
+
                             </div>
-                           
+
                             <div class = "map_card">
-                                
+
                             </div>
-                        </div>  
+                        </div>
 
                         <div class = "scatter_container">
                             <div class = "scatter_card">
-                                
+                                <!-- <svg id="scatterplot"></svg> -->
+                                <script type="text/javascript">
+                                  var margin = {top: 10, right: 10, bottom: 10, left: 10}
+                                  var width = 420 -margin.left - margin.right;
+                                  var height= 300 - margin.top - margin.bottom
+
+                                  var svg = d3.select(".scatter_card")
+                                    .append("svg")
+                                      .attr("width", width + margin.left + margin.right)
+                                      .attr("height", height + margin.top + margin.bottom)
+                                    .append("g")
+                                      .attr("transform",
+                                        "translate(" + margin.left+ ","+ margin.top + ")");
+
+                                  // d3.csv('historical_emissions.csv')
+                                  //   .then(function(data){
+                                  //     console.log(data);
+                                  //     console.log(data.columns);
+                                  // })
+
+                                  // fake data to populate the visualization to produce the framework
+                                  d3.csv("https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/5_OneCatSevNumOrdered_wide.csv", function(data) {
+                                      console.log(data);
+                                      console.log(data.columns);
+
+                                      var keys = data.columns.slice(1)
+
+                                      //add x axis
+                                      var x = d3.scaleLinear()
+                                        .domain(d3.extent(data, function(d) {return d.year;}))
+                                        .range([0, width]);
+                                      svg.append("g")
+                                        .attr("transform", "translate(0, " + height*0.8 + ")")
+                                        .call(d3.axisBottom(x).tickSize(-height*.7).tickValues([1900, 1925, 1975, 2000]))
+                                        .select(".domain").remove()
+
+                                      svg.selectAll(".tick line").attr("stroke", "#b8b8b8")
+
+                                      svg.append("text")
+                                        .attr("text-anchor", "end")
+                                        .attr("x", width)
+                                        .attr("y", height-30)
+                                        .text("Year")
+
+                                      var y = d3.scaleLinear()
+                                        .domain([-100000, 100000])
+                                        .range([height, 0]);
+
+                                      var color = d3.scaleOrdinal()
+                                        .domain(keys)
+                                        .range(d3.schemeCategory10);
+
+                                      //stack the data
+                                      var stackData = d3.stack()
+                                        .offset(d3.stackOffsetSilhouette)
+                                        .keys(keys)
+                                        (data)
+
+                                      //toop tip
+                                      var Tooltip = svg
+                                        .append("text")
+                                        .attr("x", 0)
+                                        .attr("y", 0)
+                                        .style("opacity", 0)
+                                        .style("font-size", 17)
+
+                                      //interactions
+                                      const mouseover = function(d){
+                                        Tooltip.style("opacity", 1)
+                                        d3.selectAll(".myArea").style("opacity", .2)
+                                        d3.select(this)
+                                          .style("stroke", "black")
+                                          .style("opacity", 1)
+                                      }
+
+                                      const mousemove = function(d, i){
+                                        grp = keys[i]
+                                        Tooltip.text(grp)
+                                      }
+
+                                      const mouseleave = function(d){
+                                        Tooltip.style("opacity", 0)
+                                        d3.selectAll(".myArea").style("opacity", 1).style("stroke", "none")
+                                      }
+
+                                      // area generator
+                                      const area = d3.area()
+                                        .x(function(d){ return x(d.data.year); })
+                                        .y0(function(d){ return y(d[0]); })
+                                        .y1(function(d){ return y(d[1]); })
+
+                                        //show the area
+                                        svg.selectAll("mylayers")
+                                          .data(stackData)
+                                          .enter()
+                                          .append("path")
+                                            .attr("class", "myArea")
+                                            .style("fill", function(d){ return color(d.key); })
+                                            .attr("d", area)
+                                            .on("mouseover", mouseover)
+                                            .on("mousemove", mousemove)
+                                            .on("mouseleave", mouseleave)
+                                    })
+                                </script>
                             </div>
                             <div class = "titles">
                                 <h2>GHG Emissions Density by Country</h2>
                             </div>
-    
-                        </div> 
+
+                        </div>
                         <div class = "sunburst_container">
                             <div class = "sunburst_card">
                                 <svg id="sunburst"></svg>
@@ -67,10 +170,10 @@
                             <div class = "titles">
                                 <h2>GHG Emissions by Economic Country</h2>
                             </div>
-    
-                        </div> 
+
+                        </div>
                     </div>
-                    
+
                 </div>
             </section>
         </main>
