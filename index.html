@@ -55,8 +55,8 @@
                             <div class = "scatter_card">
                                 <!-- <svg id="scatterplot"></svg> -->
                                 <script type="text/javascript">
-                                  var margin = {top: 10, right: 10, bottom: 10, left: 10}
-                                  var width = 420 -margin.left - margin.right;
+                                  var margin = {top: 20, right: 10, bottom: 20, left: 10}
+                                  var width = 500 -margin.left - margin.right;
                                   var height= 300 - margin.top - margin.bottom
 
                                   var svg = d3.select(".scatter_card")
@@ -103,7 +103,7 @@
 
                                       var color = d3.scaleOrdinal()
                                         .domain(keys)
-                                        .range(d3.schemeCategory10);
+                                        .range(d3.schemeCategory20b);
 
                                       //stack the data
                                       var stackData = d3.stack()
