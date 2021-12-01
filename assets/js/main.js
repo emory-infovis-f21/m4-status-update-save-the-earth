@@ -132,9 +132,10 @@ sr.reveal(`h2`, {
 //
 
 // ------- sunburst js code (it's really messy right now!!) -------
-var width = 275;
-var height = 275;
-var radius = Math.min(width, height) / 2 + 40;
+let box = document.querySelector(".sunburst_card");
+var width = box.offsetWidth;
+var height = box.offsetHeight - 30;
+var radius = Math.min(width, height) / 2 + 80;
 var color = d3.scaleOrdinal(d3.schemeCategory20b);
 
 var c_select = "United States";
@@ -223,14 +224,13 @@ function updateChart(y_select, c_select) {
                 return d.x1;
             })
             .innerRadius(function (d) {
-                return d.y0 - 40;
+                return d.y0 - 80;
             })
             .outerRadius(function (d) {
-                return d.y1 - 40;
+                return d.y1 - 80;
             });
 
-        const path = g
-            .selectAll("g")
+        g.selectAll("g")
             .data(root.descendants())
             .enter()
             .append("g")
@@ -241,25 +241,45 @@ function updateChart(y_select, c_select) {
             })
             .attr("d", arc)
             .on("mouseover", function (d) {
-                color_d = color((d.children ? d : d.parent).data.name);
-                if (d.depth == 2) {
-                    color_d = shadeColor(color_d, 20);
+                if (this.id != "selected") {
+                    color_d = color((d.children ? d : d.parent).data.name);
+                    if (d.depth == 2) {
+                        color_d = shadeColor(color_d, 20);
+                    }
+                    d3.select(this)
+                        .attr("r", 5.5)
+                        .style("fill", shadeColor(color_d, 10))
+                        .style("cursor", "pointer");
+
+                    if (d.depth != 1) {
+                        d3.select(".infobox .title").text(d.data.name + ":  ");
+                        d3.select(".infobox .words").text(
+                            d.value + " " + d.data.unit
+                        );
+                        d3.select(".infobox").style("visibility", "visible");
+                    } else {
+                        d3.select(".infobox").style("visibility", "visible");
+                        d3.select(".infobox .title").text(d.data.name);
+                        d3.select(".infobox .words").text(
+                            Math.round((d.value / d.parent.value) * 100) + "%"
+                        );
+                    }
                 }
-                d3.select(this)
-                    .attr("r", 5.5)
-                    .style("fill", shadeColor(color_d, 10))
-                    .style("cursor", "pointer");
             })
             .on("mouseout", function (d) {
-                color_d = color((d.children ? d : d.parent).data.name);
+                if (this.id != "selected") {
+                    color_d = color((d.children ? d : d.parent).data.name);
 
-                if (d.depth == 2) {
-                    color_d = shadeColor(color_d, 20);
+                    if (d.depth == 2) {
+                        color_d = shadeColor(color_d, 20);
+                    }
+                    d3.select(this)
+                        .attr("r", 5.5)
+                        .style("fill", color_d)
+                        .style("cursor", "default");
+
+                    d3.select(".infobox").style("visibility", "hidden");
                 }
-                d3.select(this)
-                    .attr("r", 5.5)
-                    .style("fill", color_d)
-                    .style("cursor", "default");
             })
             .style("stroke", "#fff")
             .style("fill", function (d) {
@@ -270,10 +290,21 @@ function updateChart(y_select, c_select) {
                     return color_d;
                 }
             })
-            .on("click", clicked);
+            .on("click", function (d) {
+                if (this.id != "selected") {
+                    d3.select(this).attr("id", "selected").style("fill", "red");
+                    // d3.select(this.parentNode).style("font-weight", "900");
+                } else {
+                    color_d = color((d.children ? d : d.parent).data.name);
+                    if (d.depth == 2) {
+                        color_d = shadeColor(color_d, 20);
+                    }
+                    d3.select(this).attr("r", 5.5).style("fill", color_d);
+                    d3.select(this).attr("id", "");
+                }
+            });
 
-        const text = g
-            .selectAll(".node")
+        g.selectAll(".node")
             .append("text")
             .text(function (d) {
                 return d.parent ? d.data.name : "";
@@ -291,99 +322,46 @@ function updateChart(y_select, c_select) {
                 if (d.depth == 2) {
                     return "-10";
                 } else {
-                    return "-25";
+                    return "-50";
                 }
             })
             .attr("dy", ".5em")
             .on("mouseover", function (d) {
-                color_d = color((d.children ? d : d.parent).data.name);
-                if (d.depth == 2) {
-                    color_d = shadeColor(color_d, 20);
+                if (this.id != "selected") {
+                    d3.select(this).style("cursor", "pointer");
+
+                    color_d = color((d.children ? d : d.parent).data.name);
+                    if (d.depth == 2) {
+                        color_d = shadeColor(color_d, 20);
+                    }
+                    d3.select(this.parentNode)
+                        .selectAll("path")
+                        .style("fill", shadeColor(color_d, 10));
+
+                    if (d.depth != 1) {
+                        d3.select(".infobox .title").text(d.data.name + ":  ");
+                        d3.select(".infobox .words").text(
+                            d.value + " " + d.data.unit
+                        );
+                        d3.select(".infobox").style("visibility", "visible");
+                    } else {
+                        d3.select(".infobox").style("visibility", "visible");
+                        d3.select(".infobox .title").text(d.data.name);
+                        d3.select(".infobox .words").text(
+                            Math.round((d.value / d.parent.value) * 100) + "%"
+                        );
+                    }
                 }
-                d3.select(this.parentNode)
-                    .selectAll("path")
-                    .style("fill", shadeColor(color_d, 10));
             })
             .on("mouseout", function (d) {
                 d3.select(this).attr("r", 5.5).style("fill", "black");
             })
-            .style("font-size", "6.3px")
-            .style("opacity", function (d) {
+            .style("font-size", "14px")
+            .style("visibility", function (d) {
                 length = this.getComputedTextLength();
                 box = this.parentNode.getBBox();
-                return length > 50 || d.value < 150 ? 0 : 1;
+                return length > 120 || d.value < 190 ? "hidden" : "visible";
             });
-
-        const parent = g
-            .append("circle")
-            .datum(sun_root)
-            .attr("r", radius / 10)
-            .attr("fill", "none")
-            .attr("pointer-events", "all")
-            .on("click", clicked)
-            .style("cursor", "pointer");
-
-        function clicked(event, p) {
-            console.log(event.data.name);
-            parent.datum(event.parent || sun_root);
-
-            sun_root.each((d) => {
-                d.target = {
-                    x0:
-                        Math.max(
-                            0,
-                            Math.min(
-                                1,
-                                (d.x0 - event.x0) / (event.x1 - event.x0)
-                            )
-                        ) *
-                        2 *
-                        Math.PI,
-                    x1:
-                        Math.max(
-                            0,
-                            Math.min(
-                                1,
-                                (d.x1 - event.x0) / (event.x1 - event.x0)
-                            )
-                        ) *
-                        2 *
-                        Math.PI,
-                    y0: Math.max(0, d.y0 - event.depth),
-                    y1: Math.max(0, d.y1 - event.depth),
-                };
-            });
-            console.log(path);
-
-            const t = g.transition().duration(750);
-            // Transition the data on all arcs, even the ones that aren’t visible,
-            // so that if this transition is interrupted, entering arcs will start
-            // the next transition from the desired position.
-            path.transition(t)
-                .tween("data", (d) => {
-                    const i = d3.interpolate(d.current, d.target);
-                    return (t) => (d.current = i(t));
-                })
-                .filter(function (d) {
-                    return (
-                        +this.getAttribute("fill-opacity") ||
-                        arcVisible(d.target)
-                    );
-                })
-                .attr("fill-opacity", (d) =>
-                    arcVisible(d.target) ? (d.children ? 0.6 : 0.4) : 0
-                )
-                .attrTween("d", arc);
-
-            text.filter(function (d) {
-                return (
-                    +this.getAttribute("fill-opacity") || labelVisible(d.target)
-                );
-            })
-                .transition(t)
-                .attr("fill-opacity", (d) => +labelVisible(d.target))
-                .attrTween("transform", (d) => () => labelTransform(d.current));
-        }
     });
 }
 updateChart(y_select, c_select);
