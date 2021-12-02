@@ -29,11 +29,12 @@ var country_select = "World";
 
 function updateStream(country_select) {
     d3.select("#stream g").remove();
+    d3.select("#stream g").remove();
 
     var svg_stream = d3
         .select("#stream")
-        .attr("width", width_stream + margin.right + margin.left)
-        .attr("height", height_stream + margin.bottom + margin.top)
+        .attr("width", width_stream + margin.left + margin.right)
+        .attr("height", height_stream + margin.top + margin.bottom)
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -54,6 +55,7 @@ function updateStream(country_select) {
                 })
             )
             .range([0, width_stream]);
+        console.log(data);
         svg_stream.append("g")
             .attr("transform", "translate(0, " + height_stream * 0.8 + ")")
             .call(
@@ -99,10 +101,6 @@ function updateStream(country_select) {
                 }),
             ])
             .range([height_stream - 10, 0]);
-
-        // var color = d3.scaleOrdinal().domain(keys).range(d3.schemeCategory20b);
-        // .range(d3.schemeCategory10);
-
         //stack the data
         var stackData = d3.stack().offset(d3.stackOffsetSilhouette).keys(keys)(
             country_data
@@ -116,40 +114,40 @@ function updateStream(country_select) {
             .style("font-size", 17);
 
         /// vertical line
-        var vertical = d3
-            .select(".scatter_card")
-            .append("div")
-            .attr("class", "remove")
-            .style("position", "absolute")
-            .style("z-index", "19")
-            .style("width", "2px")
-            .style("height", "300px")
-            .style("top", "100px")
-            .style("bottom", "0px")
-            .style("left", "0px")
-            .style("background", "#fff");
+        // var vertical = d3
+        //     .select(".scatter_card")
+        //     .append("div")
+        //     .attr("class", "remove")
+        //     .style("position", "absolute")
+        //     .style("z-index", "19")
+        //     .style("width", "2px")
+        //     .style("height", "240px")
+        //     .style("top", "100px")
+        //     .style("bottom", "0px")
+        //     .style("left", "0px")
+        //     .style("background", "#fff");
 
         //interactions
         const mouseover = function (d) {
             Tooltip.style("opacity", 1);
-            vertical.style("left", d3.mouse(this)[0] + 8 + "px");
+            // vertical.style("left", d3.mouse(this)[0] + 8 + "px");
             d3.selectAll(".myArea").style("opacity", 0.2);
             d3.select(this).style("stroke", "black").style("opacity", 1);
             d3.select(this).style("cursor", "crosshair")
         };
 
         const mousemove = function (d, i) {
-            grp = keys[i];
-            mouse = d3.mouse(this);
-            mousex = mouse[0];
-            var invertedx = x.invert(mousex);
-            var xDate = Math.round(invertedx);
-            Tooltip.text(
-                grp + " levels in " + xDate + " were " + country_data[2018 - xDate][keys[i]] + " MtCO2e"
-            );
-            vertical.style("left", d3.mouse(this)[0] + 8 + "px");
-            d3.select(this).style("cursor", "crosshair")
-        };
+          grp = keys[i];
+          mouse = d3.mouse(this);
+          mousex = mouse[0];
+          var invertedx = x.invert(mousex);
+          var xDate = Math.round(invertedx);
+          Tooltip.text(
+              grp + " levels in " + xDate + " were " + country_data[2018 - xDate][keys[i]] + " MtCO2e"
+          );
+          // vertical.style("left", d3.mouse(this)[0] + 8 + "px");
+          d3.select(this).style("cursor", "crosshair")
+      };
 
         const mouseleave = function (d) {
             Tooltip.style("opacity", 0);
