@@ -690,7 +690,7 @@ function update_year(year) {
     d3.select(".year").text(year);
 }
 function update_country(country) {
-    d3.select(".selected_country").text(country);
+    d3.selectAll(".selected_country").text(country);
     updateStream(country);
     update_sunburst(d3.select(".slider").attr("year"), country);
 }
