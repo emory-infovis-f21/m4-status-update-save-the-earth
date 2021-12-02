@@ -20,18 +20,18 @@ sr.reveal(`h2`, {
 });
 // ____________________ streamgraph __________________________________________
 
-let box1 = document.querySelector(".scatter_card");
-var width1 = box1.offsetWidth;
-var height1 = box1.offsetHeight - 30;
-var margin = { top: 20, right: 10, bottom: 20, left: 10 };
+let box_stream = document.querySelector(".scatter_card");
+var width_stream = 920;
+var height_stream = 320;
+var margin = { top: 10, right: 10, bottom: 10, left: 10 };
 
 var country_select = "World";
 
 function updateStream(country_select) {
-    var svg1 = d3
+    var svg_stream = d3
         .select("#stream")
-        .attr("width", width1 + margin.left + margin.right)
-        .attr("height", height1 + margin.top + margin.bottom)
+        .attr("width", width_stream + margin.right + margin.left)
+        .attr("height", height_stream + margin.bottom + margin.top)
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -51,19 +51,19 @@ function updateStream(country_select) {
                     return d.Year;
                 })
             )
-            .range([0, width1]);
-        svg1.append("g")
-            .attr("transform", "translate(0, " + height1 * 0.8 + ")")
-            .call(d3.axisBottom(x).tickValues([1880, 1920, 1960, 2000]))
+            .range([0, width_stream]);
+        svg_stream.append("g")
+            .attr("transform", "translate(0, " + height_stream * 0.8 + ")")
+            .call(d3.axisBottom(x).tickValues([1880, 1920, 1960, 2000]).tickFormat(d3.format("d")))
             .select(".domain")
             .remove();
 
-        svg1.selectAll(".tick line").attr("stroke", "#b8b8b8");
+        svg_stream.selectAll(".tick line").attr("stroke", "#b8b8b8");
 
-        svg1.append("text")
+        svg_stream.append("text")
             .attr("text-anchor", "end")
-            .attr("x", width1)
-            .attr("y", height1 - 30)
+            .attr("x", width_stream)
+            .attr("y", height_stream - 20)
             .text("Year");
 
         var y = d3
@@ -89,7 +89,7 @@ function updateStream(country_select) {
                     );
                 }),
             ])
-            .range([height1 - 10, 0]);
+            .range([height_stream - 10, 0]);
 
         var color = d3.scaleOrdinal().domain(keys).range(d3.schemeCategory20b);
         // .range(d3.schemeCategory10);
@@ -98,35 +98,35 @@ function updateStream(country_select) {
         var stackData = d3.stack().offset(d3.stackOffsetSilhouette).keys(keys)(
             country_data
         );
-        console.log(stackData);
         //data tool tip
-        var Tooltip = svg1
+        var Tooltip = svg_stream
             .append("text")
-            .attr("x", 0)
-            .attr("y", 0)
+            .attr("x", 5)
+            .attr("y", 20)
             .style("opacity", 0)
             .style("font-size", 17);
 
         /// vertical line
         var vertical = d3
-            .select("#stream")
+            .select(".scatter_card")
             .append("div")
             .attr("class", "remove")
             .style("position", "absolute")
             .style("z-index", "19")
-            .style("width", "1px")
-            .style("height", height1)
-            .style("top", "10px")
-            .style("bottom", "30px")
+            .style("width", "2px")
+            .style("height", "300px")
+            .style("top", "100px")
+            .style("bottom", "0px")
             .style("left", "0px")
             .style("background", "#fff");
 
         //interactions
         const mouseover = function (d) {
             Tooltip.style("opacity", 1);
-            vertical.style("left", d3.mouse(this)[0] + 5 + "px");
+            vertical.style("left", d3.mouse(this)[0] + 8 + "px");
             d3.selectAll(".myArea").style("opacity", 0.2);
             d3.select(this).style("stroke", "black").style("opacity", 1);
+            d3.select(this).style("cursor", "crosshair")
         };
 
         const mousemove = function (d, i) {
@@ -136,13 +136,10 @@ function updateStream(country_select) {
             var invertedx = x.invert(mousex);
             var xDate = Math.round(invertedx);
             Tooltip.text(
-                grp +
-                    "\t " +
-                    xDate +
-                    "\t " +
-                    country_data[2018 - xDate][keys[i]]
+                grp + " levels in " + xDate + " were " + country_data[2018 - xDate][keys[i]] + " MtCO2e"
             );
-            vertical.style("left", d3.mouse(this)[0] + 5 + "px");
+            vertical.style("left", d3.mouse(this)[0] + 8 + "px");
+            d3.select(this).style("cursor", "crosshair")
         };
 
         const mouseleave = function (d) {
@@ -164,7 +161,7 @@ function updateStream(country_select) {
             });
 
         //show the area
-        svg1.selectAll("mylayers")
+        svg_stream.selectAll("mylayers")
             .data(stackData)
             .enter()
             .append("path")
