@@ -21,7 +21,7 @@ sr.reveal(`h2`, {
 // ____________________ streamgraph __________________________________________
 
 let box1 = document.querySelector(".scatter_card");
-var width1 = box1.offsetWidth;
+var width1 = box1.offsetWidth - 50;
 var height1 = box1.offsetHeight - 30;
 var margin = { top: 20, right: 10, bottom: 20, left: 10 };
 
@@ -54,9 +54,17 @@ function updateStream(country_select) {
                 })
             )
             .range([0, width1]);
+        console.log(data);
         svg1.append("g")
             .attr("transform", "translate(0, " + height1 * 0.8 + ")")
-            .call(d3.axisBottom(x).tickValues([1880, 1920, 1960, 2000]))
+            .call(
+                d3
+                    .axisBottom(x)
+                    .tickValues([
+                        1860, 1880, 1900, 1920, 1940, 1960, 1980, 2000, 2017,
+                    ])
+                    .tickFormat(d3.format("d"))
+            )
             .select(".domain")
             .remove();
 
@@ -92,15 +100,10 @@ function updateStream(country_select) {
                 }),
             ])
             .range([height1 - 10, 0]);
-
-        var color = d3.scaleOrdinal().domain(keys).range(d3.schemeCategory20b);
-        // .range(d3.schemeCategory10);
-
         //stack the data
         var stackData = d3.stack().offset(d3.stackOffsetSilhouette).keys(keys)(
             country_data
         );
-        console.log(stackData);
         //data tool tip
         var Tooltip = svg1
             .append("text")
@@ -172,7 +175,25 @@ function updateStream(country_select) {
             .append("path")
             .attr("class", "myArea")
             .style("fill", function (d) {
-                return color(d.key);
+                console.log(d.key);
+                var range = [
+                    "#cccccc",
+                    "#FF7A75",
+                    "#983a37",
+                    "#82322f",
+                    "#572120",
+                    "#2b1110",
+                    "#000000",
+                ];
+                if (d.key == "CO2") {
+                    return "#2b1110";
+                } else if (d.key == "CH4") {
+                    return "#82322f";
+                } else if (d.key == "N2O") {
+                    return "#983a37";
+                } else {
+                    return "#FF7A75";
+                }
             })
             .attr("d", area)
             .on("mouseover", mouseover)
@@ -683,7 +704,7 @@ var slider = d3
         var year = this.value;
         var country = d3.select("#c_selected").attr("country");
         update_year(year);
-        update_map(1900, country);
+        update_map(year, country);
         update_sunburst(year, country);
         updateStream(country);
     });
