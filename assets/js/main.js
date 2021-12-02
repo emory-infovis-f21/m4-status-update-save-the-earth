@@ -28,6 +28,8 @@ var margin = { top: 10, right: 10, bottom: 10, left: 10 };
 var country_select = "World";
 
 function updateStream(country_select) {
+    d3.select("#stream g").remove();
+
     var svg_stream = d3
         .select("#stream")
         .attr("width", width_stream + margin.right + margin.left)
@@ -54,7 +56,14 @@ function updateStream(country_select) {
             .range([0, width_stream]);
         svg_stream.append("g")
             .attr("transform", "translate(0, " + height_stream * 0.8 + ")")
-            .call(d3.axisBottom(x).tickValues([1880, 1920, 1960, 2000]).tickFormat(d3.format("d")))
+            .call(
+                d3
+                    .axisBottom(x)
+                    .tickValues([
+                        1860, 1880, 1900, 1920, 1940, 1960, 1980, 2000, 2017,
+                    ])
+                    .tickFormat(d3.format("d"))
+            )
             .select(".domain")
             .remove();
 
@@ -91,7 +100,7 @@ function updateStream(country_select) {
             ])
             .range([height_stream - 10, 0]);
 
-        var color = d3.scaleOrdinal().domain(keys).range(d3.schemeCategory20b);
+        // var color = d3.scaleOrdinal().domain(keys).range(d3.schemeCategory20b);
         // .range(d3.schemeCategory10);
 
         //stack the data
@@ -167,7 +176,25 @@ function updateStream(country_select) {
             .append("path")
             .attr("class", "myArea")
             .style("fill", function (d) {
-                return color(d.key);
+                console.log(d.key);
+                var range = [
+                    "#cccccc",
+                    "#FF7A75",
+                    "#983a37",
+                    "#82322f",
+                    "#572120",
+                    "#2b1110",
+                    "#000000",
+                ];
+                if (d.key == "CO2") {
+                    return "#2b1110";
+                } else if (d.key == "CH4") {
+                    return "#82322f";
+                } else if (d.key == "N2O") {
+                    return "#983a37";
+                } else {
+                    return "#FF7A75";
+                }
             })
             .attr("d", area)
             .on("mouseover", mouseover)
@@ -520,7 +547,7 @@ promises.push(
         "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"
     )
 );
-function update_map(year) {
+function update_map(year, country) {
     //map
     // set the dimensions and margins of the graph
     let box = document.querySelector(".sunburst_card");
@@ -576,7 +603,6 @@ function update_map(year) {
         };
 
         let mouseOff = function (d) {
-            // if (this.id != "c_selected") {
             d3.selectAll(".world")
                 .transition()
                 .duration(50)
@@ -590,20 +616,23 @@ function update_map(year) {
             d3.select("#annotation").style("opacity", 1);
 
             tooltip.style("opacity", 0);
-            // } else {
-            //     console.log("c_selected");
-            //     d3.select(this)
-            //         .style("fill", "red")
-            //         .style("stroke-width", 1)
-            //         .style("stroke", "black");
-            // }
         };
         let mouseClick = function (d) {
-            d3.select(this).attr("id", "c_selected");
-            d3.select(this)
-                .style("fill", "red")
-                .style("stroke-width", 1)
-                .style("stroke", "black");
+            console.log(this.id);
+            if (this.id == "not_selected") {
+                update_country(d.properties.name);
+                d3.selectAll("#c_selected")
+                    .attr("id", function (d) {
+                        console.log(this);
+                        return "not_selected";
+                    })
+                    .style("fill", function (d) {
+                        d.totalEmissions = data.get(d.id) || 0;
+                        return colorScale(d.totalEmissions);
+                    });
+                d3.select(this).attr("id", "c_selected");
+                d3.select(this).style("fill", "lightgreen");
+            }
         };
         var world = world[0];
         // Draw the map
@@ -615,18 +644,21 @@ function update_map(year) {
             .attr("class", "world")
             // .attr("id", "not_selected")
             .attr("id", function (d) {
-                if (d.properties.name == "USA") {
-                    return "selected";
+                if (d.properties.name == country) {
+                    return "c_selected";
                 } else {
                     return "not_selected";
                 }
+            })
+            .attr("country", function (d) {
+                return d.properties.name;
             })
             // draw each country
             .attr("d", d3.geoPath().projection(projection))
             // set the color of each country
             .attr("fill", function (d) {
-                if (this.id == "selected") {
-                    return "red";
+                if (this.id == "c_selected") {
+                    return "lightgreen";
                 } else {
                     d.totalEmissions = data.get(d.id) || 0;
                     return colorScale(d.totalEmissions);
@@ -659,6 +691,7 @@ function update_year(year) {
 }
 function update_country(country) {
     d3.select(".selected_country").text(country);
+    updateStream(country);
 }
 //Slider
 var slider = d3
@@ -670,15 +703,15 @@ var slider = d3
     .attr("step", 1)
     .on("input", function () {
         var year = this.value;
-        console.log(year);
+        var country = d3.select("#c_selected").attr("country");
         update_year(year);
-        update_map(year);
-        update_sunburst(year, "United States");
-        updateStream("United States");
+        update_map(year, country);
+        update_sunburst(year, country);
+        updateStream(country);
     });
 
 update_year(1900);
-update_country("United States");
-update_map(1900);
-update_sunburst(1900, "United States");
-updateStream("United States");
+update_country("USA");
+update_map(1900, "USA");
+update_sunburst(1900, "USA");
+updateStream("USA");
