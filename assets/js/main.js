@@ -18,16 +18,168 @@ sr.reveal(
 sr.reveal(`h2`, {
     origin: "left",
 });
+// ____________________ streamgraph __________________________________________
+
+let box1 = document.querySelector(".scatter_card");
+var width1 = box1.offsetWidth;
+var height1 = box1.offsetHeight - 30;
+var margin = { top: 20, right: 10, bottom: 20, left: 10 };
+
+var country_select = "World";
+
+function updateStream(country_select) {
+    var svg1 = d3
+        .select("#stream")
+        .attr("width", width1 + margin.left + margin.right)
+        .attr("height", height1 + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var dataCsv = d3.csv("ghg_streamgraph.csv");
+    dataCsv.then(function (data) {
+        country_data = data.filter(function (d) {
+            return d.Country == country_select;
+        });
+        country_data.columns = data.columns;
+        var keys = country_data.columns.slice(2);
+
+        //add x axis
+        var x = d3
+            .scaleLinear()
+            .domain(
+                d3.extent(data, function (d) {
+                    return d.Year;
+                })
+            )
+            .range([0, width1]);
+        svg1.append("g")
+            .attr("transform", "translate(0, " + height1 * 0.8 + ")")
+            .call(d3.axisBottom(x).tickValues([1880, 1920, 1960, 2000]))
+            .select(".domain")
+            .remove();
+
+        svg1.selectAll(".tick line").attr("stroke", "#b8b8b8");
+
+        svg1.append("text")
+            .attr("text-anchor", "end")
+            .attr("x", width1)
+            .attr("y", height1 - 30)
+            .text("Year");
+
+        var y = d3
+            .scaleLinear()
+            .domain([
+                d3.min(country_data, function (d) {
+                    return (
+                        -1 *
+                        Math.max(
+                            Math.abs(d["CO2"]),
+                            Math.abs(d["CH4"]),
+                            Math.abs(d["N2O"]),
+                            Math.abs(d["F-Gas"])
+                        )
+                    );
+                }),
+                d3.max(country_data, function (d) {
+                    return Math.max(
+                        Math.abs(d["CO2"]),
+                        Math.abs(d["CH4"]),
+                        Math.abs(d["N2O"]),
+                        Math.abs(d["F-Gas"])
+                    );
+                }),
+            ])
+            .range([height1 - 10, 0]);
+
+        var color = d3.scaleOrdinal().domain(keys).range(d3.schemeCategory20b);
+        // .range(d3.schemeCategory10);
+
+        //stack the data
+        var stackData = d3.stack().offset(d3.stackOffsetSilhouette).keys(keys)(
+            country_data
+        );
+        console.log(stackData);
+        //data tool tip
+        var Tooltip = svg1
+            .append("text")
+            .attr("x", 0)
+            .attr("y", 0)
+            .style("opacity", 0)
+            .style("font-size", 17);
+
+        /// vertical line
+        var vertical = d3
+            .select("#stream")
+            .append("div")
+            .attr("class", "remove")
+            .style("position", "absolute")
+            .style("z-index", "19")
+            .style("width", "1px")
+            .style("height", height1)
+            .style("top", "10px")
+            .style("bottom", "30px")
+            .style("left", "0px")
+            .style("background", "#fff");
+
+        //interactions
+        const mouseover = function (d) {
+            Tooltip.style("opacity", 1);
+            vertical.style("left", d3.mouse(this)[0] + 5 + "px");
+            d3.selectAll(".myArea").style("opacity", 0.2);
+            d3.select(this).style("stroke", "black").style("opacity", 1);
+        };
+
+        const mousemove = function (d, i) {
+            grp = keys[i];
+            mouse = d3.mouse(this);
+            mousex = mouse[0];
+            var invertedx = x.invert(mousex);
+            var xDate = Math.round(invertedx);
+            Tooltip.text(
+                grp +
+                    "\t " +
+                    xDate +
+                    "\t " +
+                    country_data[2018 - xDate][keys[i]]
+            );
+            vertical.style("left", d3.mouse(this)[0] + 5 + "px");
+        };
+
+        const mouseleave = function (d) {
+            Tooltip.style("opacity", 0);
+            d3.selectAll(".myArea").style("opacity", 1).style("stroke", "none");
+        };
+
+        // area generator
+        const area = d3
+            .area()
+            .x(function (d) {
+                return x(d.data.Year);
+            })
+            .y0(function (d) {
+                return y(d[0]);
+            })
+            .y1(function (d) {
+                return y(d[1]);
+            });
+
+        //show the area
+        svg1.selectAll("mylayers")
+            .data(stackData)
+            .enter()
+            .append("path")
+            .attr("class", "myArea")
+            .style("fill", function (d) {
+                return color(d.key);
+            })
+            .attr("d", area)
+            .on("mouseover", mouseover)
+            .on("mousemove", mousemove)
+            .on("mouseleave", mouseleave);
+    });
+}
 
 // ------- sunburst js code (it's really messy right now!!) -------
-let box = document.querySelector(".sunburst_card");
-var width = box.offsetWidth;
-var height = box.offsetHeight - 30;
-var radius = Math.min(width, height) / 2 + 80;
-var color = d3.scaleOrdinal(d3.schemeCategory20b);
-
-var c_select = "China";
-var y_select = 1980;
 
 groupBy = function (xs, key) {
     return xs.reduce(function (rv, x) {
@@ -36,18 +188,40 @@ groupBy = function (xs, key) {
     }, {});
 };
 
-function updateChart(y_select, c_select) {
-    var g = d3
-        .select("#sunburst")
-        .attr("width", width)
-        .attr("height", height)
-        .append("g")
-        .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+var dataCsv = d3.csv("historical_emissions.csv");
 
-    var partition = d3.partition().size([2 * Math.PI, radius]);
-    var dataCsv = d3.csv("historical_emissions.csv");
+function update_sunburst(y_select, c_select) {
+    let box = document.querySelector(".sunburst_card");
+    var width_sb = 964;
+    var height_sb = 636;
+    var radius = Math.min(width_sb, height_sb) / 2 + 80;
+
+    var range = [
+        "#cccccc",
+        "#FF7A75",
+        "#983a37",
+        "#82322f",
+        "#572120",
+        "#2b1110",
+        "#000000",
+    ];
+    var domain = [0, 500, 3000, 6000, 7000, 10000];
+
+    var color = d3.scaleThreshold().domain(domain).range(range);
 
     dataCsv.then(function (data) {
+        d3.select("#sunburst g").remove();
+        var g = d3
+            .select("#sunburst")
+            .attr("width", width_sb)
+            .attr("height", height_sb)
+            .append("g")
+            .attr(
+                "transform",
+                "translate(" + width_sb / 2 + "," + height_sb / 2 + ")"
+            );
+
+        var partition = d3.partition().size([2 * Math.PI, radius]);
         json = data.map(function (value, key) {
             return {
                 Country: value.Country,
@@ -63,11 +237,10 @@ function updateChart(y_select, c_select) {
 
         json_country = { name: "Sector", children: [] };
         for (var k = 0; k < country_data.length; k++) {
-            var objName = country_data[k]["Country"];
             var objSec = country_data[k]["Sector"];
             var objGas = country_data[k]["Gas"];
             var objUnit = country_data[k]["Unit"];
-            var objValue = country_data[k]["raw_data"][2010];
+            var objValue = country_data[k]["raw_data"][y_select];
             const found = json_country["children"].find(
                 (e) => e.name == objSec
             );
@@ -104,168 +277,186 @@ function updateChart(y_select, c_select) {
         sun_root = partition(root);
         root.each((d) => (d.current = d));
 
-        var arc = d3
-            .arc()
-            .startAngle(function (d) {
-                return d.x0;
-            })
-            .endAngle(function (d) {
-                return d.x1;
-            })
-            .innerRadius(function (d) {
-                return d.y0 - 80;
-            })
-            .outerRadius(function (d) {
-                return d.y1 - 80;
-            });
+        no_data = json_country.children.length == 0;
+        if (!no_data) {
+            var arc = d3
+                .arc()
+                .startAngle(function (d) {
+                    return d.x0;
+                })
+                .endAngle(function (d) {
+                    return d.x1;
+                })
+                .innerRadius(function (d) {
+                    return d.y0 - 80;
+                })
+                .outerRadius(function (d) {
+                    return d.y1 - 80;
+                });
 
-        g.selectAll("g")
-            .data(root.descendants())
-            .enter()
-            .append("g")
-            .attr("class", "node")
-            .append("path")
-            .attr("display", function (d) {
-                return d.depth ? null : "none";
-            })
-            .attr("d", arc)
-            .on("mouseover", function (d) {
-                if (this.id != "selected") {
-                    color_d = color((d.children ? d : d.parent).data.name);
-                    if (d.depth == 2) {
-                        color_d = shadeColor(color_d, 20);
+            g.selectAll("g")
+                .data(root.descendants())
+                .enter()
+                .append("g")
+                .attr("class", "node")
+                .append("path")
+                .attr("display", function (d) {
+                    return d.depth ? null : "none";
+                })
+                .attr("d", arc)
+                .on("mouseover", function (d) {
+                    if (this.id != "selected") {
+                        color_d = color(d.value);
+                        console.log(color);
+                        if (d.depth == 2) {
+                            color_d = shadeColor(color_d, 20);
+                        }
+                        d3.select(this)
+                            .attr("r", 5.5)
+                            .style("fill", shadeColor(color_d, 10))
+                            .style("cursor", "pointer");
+
+                        if (d.depth != 1) {
+                            d3.select(".infobox .title").text(
+                                d.data.name + ":  "
+                            );
+                            d3.select(".infobox .words").text(
+                                d.value + " " + d.data.unit
+                            );
+                            d3.select(".infobox").style(
+                                "visibility",
+                                "visible"
+                            );
+                        } else {
+                            d3.select(".infobox").style(
+                                "visibility",
+                                "visible"
+                            );
+                            d3.select(".infobox .title").text(d.data.name);
+                            d3.select(".infobox .words").text(
+                                Math.round((d.value / d.parent.value) * 100) +
+                                    "%"
+                            );
+                        }
                     }
-                    d3.select(this)
-                        .attr("r", 5.5)
-                        .style("fill", shadeColor(color_d, 10))
-                        .style("cursor", "pointer");
+                })
+                .on("mouseout", function (d) {
+                    if (this.id != "selected") {
+                        color_d = color(d.value);
+                        if (d.depth == 2) {
+                            color_d = shadeColor(color_d, 20);
+                        }
+                        d3.select(this)
+                            .attr("r", 5.5)
+                            .style("fill", color_d)
+                            .style("cursor", "default");
 
-                    if (d.depth != 1) {
-                        d3.select(".infobox .title").text(d.data.name + ":  ");
-                        d3.select(".infobox .words").text(
-                            d.value + " " + d.data.unit
-                        );
-                        d3.select(".infobox").style("visibility", "visible");
+                        d3.select(".infobox").style("visibility", "hidden");
+                    }
+                })
+                .style("stroke", "#fff")
+                .style("fill", function (d) {
+                    color_d = color(d.value);
+                    if (d.depth == 2) {
+                        return shadeColor(color_d, 20);
                     } else {
-                        d3.select(".infobox").style("visibility", "visible");
-                        d3.select(".infobox .title").text(d.data.name);
-                        d3.select(".infobox .words").text(
-                            Math.round((d.value / d.parent.value) * 100) + "%"
-                        );
+                        return color_d;
                     }
-                }
-            })
-            .on("mouseout", function (d) {
-                if (this.id != "selected") {
-                    color_d = color((d.children ? d : d.parent).data.name);
-
-                    if (d.depth == 2) {
-                        color_d = shadeColor(color_d, 20);
-                    }
-                    d3.select(this)
-                        .attr("r", 5.5)
-                        .style("fill", color_d)
-                        .style("cursor", "default");
-
-                    d3.select(".infobox").style("visibility", "hidden");
-                }
-            })
-            .style("stroke", "#fff")
-            .style("fill", function (d) {
-                color_d = color((d.children ? d : d.parent).data.name);
-                if (d.depth == 2) {
-                    return shadeColor(color_d, 20);
-                } else {
-                    return color_d;
-                }
-            })
-            .on("click", function (d) {
-                if (this.id != "selected") {
-                    d3.select(this).attr("id", "selected").style("fill", "red");
-                    // d3.select(this.parentNode).style("font-weight", "900");
-                } else {
-                    color_d = color((d.children ? d : d.parent).data.name);
-                    if (d.depth == 2) {
-                        color_d = shadeColor(color_d, 20);
-                    }
-                    d3.select(this).attr("r", 5.5).style("fill", color_d);
-                    d3.select(this).attr("id", "");
-                }
-            });
-
-        g.selectAll(".node")
-            .append("text")
-            .text(function (d) {
-                return d.parent ? d.data.name : "";
-            })
-            .attr("transform", function (d) {
-                return (
-                    "translate(" +
-                    arc.centroid(d) +
-                    ")rotate(" +
-                    computeTextRotation(d) +
-                    ")"
-                );
-            })
-            .attr("dx", function (d) {
-                if (d.depth == 2) {
-                    return "-10";
-                } else {
-                    return "-50";
-                }
-            })
-            .attr("dy", ".5em")
-            .on("mouseover", function (d) {
-                if (this.id != "selected") {
-                    d3.select(this).style("cursor", "pointer");
-
-                    color_d = color((d.children ? d : d.parent).data.name);
-                    if (d.depth == 2) {
-                        color_d = shadeColor(color_d, 20);
-                    }
-                    d3.select(this.parentNode)
-                        .selectAll("path")
-                        .style("fill", shadeColor(color_d, 10));
-
-                    if (d.depth != 1) {
-                        d3.select(".infobox .title").text(d.data.name + ":  ");
-                        d3.select(".infobox .words").text(
-                            d.value + " " + d.data.unit
-                        );
-                        d3.select(".infobox").style("visibility", "visible");
+                })
+                .on("click", function (d) {
+                    if (this.id != "selected") {
+                        d3.select(this).attr("id", "selected");
+                        // .style("fill", "red");
                     } else {
-                        d3.select(".infobox").style("visibility", "visible");
-                        d3.select(".infobox .title").text(d.data.name);
-                        d3.select(".infobox .words").text(
-                            Math.round((d.value / d.parent.value) * 100) + "%"
-                        );
+                        color_d = color(d.value);
+
+                        if (d.depth == 2) {
+                            color_d = shadeColor(color_d, 20);
+                        }
+                        d3.select(this).attr("r", 5.5).style("fill", color_d);
+                        d3.select(this).attr("id", "");
                     }
-                }
-            })
-            .on("mouseout", function (d) {
-                d3.select(this).attr("r", 5.5).style("fill", "black");
-            })
-            .style("font-size", "14px")
-            .style("visibility", function (d) {
-                length = this.getComputedTextLength();
-                box = this.parentNode.getBBox();
-                return length > 120 || d.value < 190 ? "hidden" : "visible";
-            });
+                });
+
+            g.selectAll(".node")
+                .append("text")
+                .text(function (d) {
+                    return d.parent ? d.data.name : "";
+                })
+                .attr("transform", function (d) {
+                    return (
+                        "translate(" +
+                        arc.centroid(d) +
+                        ")rotate(" +
+                        computeTextRotation(d) +
+                        ")"
+                    );
+                })
+                .attr("dx", function (d) {
+                    if (d.depth == 2) {
+                        return "-10";
+                    } else {
+                        return "-50";
+                    }
+                })
+                .attr("dy", ".5em")
+                .on("mouseover", function (d) {
+                    if (this.id != "selected") {
+                        d3.select(this).style("cursor", "pointer");
+                        color_d = color(d.value);
+                        if (d.depth == 2) {
+                            color_d = shadeColor(color_d, 20);
+                        }
+                        d3.select(this.parentNode)
+                            .selectAll("path")
+                            .style("fill", shadeColor(color_d, 10));
+
+                        if (d.depth != 1) {
+                            d3.select(".infobox .title").text(
+                                d.data.name + ":  "
+                            );
+                            d3.select(".infobox .words").text(
+                                d.value + " " + d.data.unit
+                            );
+                            d3.select(".infobox").style(
+                                "visibility",
+                                "visible"
+                            );
+                        } else {
+                            d3.select(".infobox").style(
+                                "visibility",
+                                "visible"
+                            );
+                            d3.select(".infobox .title").text(d.data.name);
+                            d3.select(".infobox .words").text(
+                                Math.round((d.value / d.parent.value) * 100) +
+                                    "%"
+                            );
+                        }
+                    }
+                })
+                .on("mouseout", function (d) {
+                    d3.select(this).attr("r", 5.5).style("fill", "black");
+                })
+                .style("font-size", "14px")
+                .style("visibility", function (d) {
+                    length = this.getComputedTextLength();
+                    box = this.parentNode.getBBox();
+                    return length > 120 || d.value < 190 ? "hidden" : "visible";
+                });
+        } else {
+            d3.select("#sunburst").attr("height", "20px");
+            d3.select(".infobox").style("visibility", "visible");
+            d3.select(".infobox .title").text(
+                "Not enough data to display for " +
+                    c_select +
+                    " for the year " +
+                    y_select
+            );
+        }
     });
 }
-updateChart(y_select, c_select);
-function arcVisible(d) {
-    return d.y1 <= 3 && d.y0 >= 1 && d.x1 > d.x0;
-}
-function labelVisible(d) {
-    return d.y1 <= 3 && d.y0 >= 1 && (d.y1 - d.y0) * (d.x1 - d.x0) > 0.03;
-}
 
-function labelTransform(d) {
-    const x = (((d.x0 + d.x1) / 2) * 180) / Math.PI;
-    const y = ((d.y0 + d.y1) / 2) * radius;
-    return `rotate(${x - 90}) translate(${y},0) rotate(${x < 180 ? 0 : 180})`;
-}
 function computeTextRotation(d) {
     var angle = ((d.x0 + d.x1) / Math.PI) * 90;
     return angle < 180 ? angle - 90 : angle + 90;
@@ -289,3 +480,208 @@ function shadeColor(color, percent) {
 
     return "#" + RR + GG + BB;
 }
+
+// create a tooltip
+var tooltip = d3
+    .select("#tooltip")
+    .style("opacity", 0)
+    .attr("class", "tooltip")
+    .style("background-color", "white")
+    .style("border", "solid")
+    .style("border-width", "1px")
+    .style("border-radius", "5px")
+    .style("padding", "5px")
+    .style("position", "absolute");
+
+// Data and color scale
+var data = d3.map();
+
+var labels = [
+    "No Data",
+    "0.0-2.0",
+    "2.0-5.0",
+    "5.0-10.0",
+    "10.0-15.0",
+    "10.0-15.0",
+    "> 20.0",
+];
+var range = [
+    "#cccccc",
+    "#FF7A75",
+    "#983a37",
+    "#82322f",
+    "#572120",
+    "#2b1110",
+    "#000000",
+];
+var domain = [0.00000001, 2, 5, 10, 15, 20];
+
+var colorScale = d3.scaleThreshold().domain(domain).range(range);
+var promises = [];
+promises.push(
+    d3.json(
+        "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"
+    )
+);
+function update_map(year) {
+    //map
+    // set the dimensions and margins of the graph
+    let box = document.querySelector(".sunburst_card");
+    var margin = { top: 10, right: 10, bottom: 10, left: 10 };
+    width = 968;
+    height = 480;
+
+    // Map and projection
+    var projection = d3.geoMercator().scale(100).center([30, 50]);
+
+    // The svg
+    d3.select("#map g").remove();
+    var svg = d3
+        .select("#map")
+        .attr("width", width)
+        .attr("height", height)
+        .append("g");
+
+    promises.push(
+        d3.csv("co-emissions.csv", function (d) {
+            if (d.year == year) {
+                data.set(d.code, +d.emissions);
+            }
+        })
+    );
+    dataPromises = Promise.all(promises).then(function (world) {
+        let mouseOn = function (d) {
+            d3.selectAll(".world")
+                .transition()
+                .duration(50)
+                .style("opacity", 0.95);
+
+            d3.select(this)
+                .transition()
+                .duration(50)
+                .style("opacity", 1)
+                .style("stroke", "black");
+
+            function check(number) {
+                if (number > 0) {
+                    return d3.format(",.2r")(number);
+                } else {
+                    return "No Data";
+                }
+            }
+            // console.log(this);
+            tooltip
+                .html(d)
+                .style("opacity", 0.8)
+                .html(d.properties.name + ": " + check(d.totalEmissions))
+                .style("left", d3.mouse(this)[0] + 10 + "px")
+                .style("top", d3.mouse(this)[1] + "px");
+        };
+
+        let mouseOff = function (d) {
+            // if (this.id != "c_selected") {
+            d3.selectAll(".world")
+                .transition()
+                .duration(50)
+                .style("opacity", 1);
+
+            d3.selectAll(".world")
+                .transition()
+                .duration(50)
+                .style("stroke", "transparent");
+
+            d3.select("#annotation").style("opacity", 1);
+
+            tooltip.style("opacity", 0);
+            // } else {
+            //     console.log("c_selected");
+            //     d3.select(this)
+            //         .style("fill", "red")
+            //         .style("stroke-width", 1)
+            //         .style("stroke", "black");
+            // }
+        };
+        let mouseClick = function (d) {
+            d3.select(this).attr("id", "c_selected");
+            d3.select(this)
+                .style("fill", "red")
+                .style("stroke-width", 1)
+                .style("stroke", "black");
+        };
+        var world = world[0];
+        // Draw the map
+        svg.append("g")
+            .selectAll("path")
+            .data(world.features)
+            .enter()
+            .append("path")
+            .attr("class", "world")
+            // .attr("id", "not_selected")
+            .attr("id", function (d) {
+                if (d.properties.name == "USA") {
+                    return "selected";
+                } else {
+                    return "not_selected";
+                }
+            })
+            // draw each country
+            .attr("d", d3.geoPath().projection(projection))
+            // set the color of each country
+            .attr("fill", function (d) {
+                if (this.id == "selected") {
+                    return "red";
+                } else {
+                    d.totalEmissions = data.get(d.id) || 0;
+                    return colorScale(d.totalEmissions);
+                }
+            })
+            .style("opacity", 1)
+            .on("mouseover", mouseOn)
+            .on("mouseleave", mouseOff)
+            .on("click", mouseClick);
+    });
+    // legend
+    var legend_x = margin.left;
+    var legend_y = height - 180;
+    svg.append("g")
+        .attr("class", "legendByNumbers")
+        .attr("transform", "translate(" + legend_x + "," + legend_y + ")");
+
+    var legend = d3
+        .legendColor()
+        .labels(labels)
+        .title("Top CO2/Capita per year:")
+        .scale(colorScale);
+
+    svg.select(".legendByNumbers").call(legend);
+}
+
+function update_year(year) {
+    slider.property("value", year);
+    d3.select(".year").text(year);
+}
+function update_country(country) {
+    d3.select(".selected_country").text(country);
+}
+//Slider
+var slider = d3
+    .select(".slider")
+    .append("input")
+    .attr("type", "range")
+    .attr("min", 1900)
+    .attr("max", 2016)
+    .attr("step", 1)
+    .on("input", function () {
+        var year = this.value;
+        console.log(year);
+        update_year(year);
+        update_map(year);
+        update_sunburst(year, "United States");
+        updateStream("United States");
+    });
+
+update_year(1900);
+update_country("United States");
+update_map(1900);
+update_sunburst(1900, "United States");
+updateStream("United States");
