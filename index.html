@@ -48,7 +48,7 @@
                         <div class="map_container">
                             <div class="map_title">
                                 <div class="titles">
-                                    <h2>Annual GHG Emissions by Country</h2>
+                                    <h2>Worldwide Greenhouse Gas Emissions</h2>
                                 </div>
                                 <div class="select-wrapper">
                                     <div class="select-dropdown-subject">
@@ -71,7 +71,7 @@
                                         flex-direction: column;
                                     "
                                 >
-                                    <h2 class="year"></h2>
+                                    <h2 style="z-index: 3" class="year"></h2>
                                     <div class="slider"></div>
                                 </div>
 
@@ -80,12 +80,26 @@
                         </div>
 
                         <div class="scatter_container">
-                            <div class="scatter_card"></div>
-                            <div class="titles">
-                                <h2>GHG Emissions Density by Country</h2>
+                            <div
+                                class="titles"
+                                style="display: flex; flex-direction: row"
+                            >
+                                <h2>GHG Emissions Density:</h2>
+                                <h2
+                                    class="selected_country"
+                                    style="padding-left: 5px"
+                                >
+                                    Country
+                                </h2>
+                            </div>
+                            <div class="scatter_card">
+                                <svg id="stream"></svg>
                             </div>
                         </div>
                         <div class="sunburst_container">
+                            <div class="titles">
+                                <h2>GHG Emissions by Economic Country</h2>
+                            </div>
                             <div class="sunburst_card">
                                 <svg id="sunburst"></svg>
                                 <div
@@ -102,9 +116,6 @@
                                         <strong class="words"> </strong>
                                     </p>
                                 </div>
-                            </div>
-                            <div class="titles">
-                                <h2>GHG Emissions by Economic Country</h2>
                             </div>
                         </div>
                     </div>
