@@ -55,8 +55,8 @@ function updateStream(country_select) {
                 })
             )
             .range([0, width_stream]);
-        console.log(data);
-        svg_stream.append("g")
+        svg_stream
+            .append("g")
             .attr("transform", "translate(0, " + height_stream * 0.8 + ")")
             .call(
                 d3
@@ -71,7 +71,8 @@ function updateStream(country_select) {
 
         svg_stream.selectAll(".tick line").attr("stroke", "#b8b8b8");
 
-        svg_stream.append("text")
+        svg_stream
+            .append("text")
             .attr("text-anchor", "end")
             .attr("x", width_stream)
             .attr("y", height_stream - 20)
@@ -133,21 +134,26 @@ function updateStream(country_select) {
             // vertical.style("left", d3.mouse(this)[0] + 8 + "px");
             d3.selectAll(".myArea").style("opacity", 0.2);
             d3.select(this).style("stroke", "black").style("opacity", 1);
-            d3.select(this).style("cursor", "crosshair")
+            d3.select(this).style("cursor", "crosshair");
         };
 
         const mousemove = function (d, i) {
-          grp = keys[i];
-          mouse = d3.mouse(this);
-          mousex = mouse[0];
-          var invertedx = x.invert(mousex);
-          var xDate = Math.round(invertedx);
-          Tooltip.text(
-              grp + " levels in " + xDate + " were " + country_data[2018 - xDate][keys[i]] + " MtCO2e"
-          );
-          // vertical.style("left", d3.mouse(this)[0] + 8 + "px");
-          d3.select(this).style("cursor", "crosshair")
-      };
+            grp = keys[i];
+            mouse = d3.mouse(this);
+            mousex = mouse[0];
+            var invertedx = x.invert(mousex);
+            var xDate = Math.round(invertedx);
+            Tooltip.text(
+                grp +
+                    " levels in " +
+                    xDate +
+                    " were " +
+                    country_data[2018 - xDate][keys[i]] +
+                    " MtCO2e"
+            );
+            // vertical.style("left", d3.mouse(this)[0] + 8 + "px");
+            d3.select(this).style("cursor", "crosshair");
+        };
 
         const mouseleave = function (d) {
             Tooltip.style("opacity", 0);
@@ -168,13 +174,13 @@ function updateStream(country_select) {
             });
 
         //show the area
-        svg_stream.selectAll("mylayers")
+        svg_stream
+            .selectAll("mylayers")
             .data(stackData)
             .enter()
             .append("path")
             .attr("class", "myArea")
             .style("fill", function (d) {
-                console.log(d.key);
                 var range = [
                     "#cccccc",
                     "#FF7A75",
@@ -329,7 +335,6 @@ function update_sunburst(y_select, c_select) {
                 .on("mouseover", function (d) {
                     if (this.id != "selected") {
                         color_d = color(d.value);
-                        console.log(color);
                         if (d.depth == 2) {
                             color_d = shadeColor(color_d, 20);
                         }
@@ -591,7 +596,6 @@ function update_map(year, country) {
                     return "No Data";
                 }
             }
-            // console.log(this);
             tooltip
                 .html(d)
                 .style("opacity", 0.8)
@@ -616,12 +620,10 @@ function update_map(year, country) {
             tooltip.style("opacity", 0);
         };
         let mouseClick = function (d) {
-            console.log(this.id);
             if (this.id == "not_selected") {
                 update_country(d.properties.name);
                 d3.selectAll("#c_selected")
                     .attr("id", function (d) {
-                        console.log(this);
                         return "not_selected";
                     })
                     .style("fill", function (d) {
@@ -690,6 +692,7 @@ function update_year(year) {
 function update_country(country) {
     d3.select(".selected_country").text(country);
     updateStream(country);
+    update_sunburst(d3.select(".slider").attr("year"), country);
 }
 //Slider
 var slider = d3
@@ -706,6 +709,7 @@ var slider = d3
         update_map(year, country);
         update_sunburst(year, country);
         updateStream(country);
+        d3.select(".slider").attr("year", year);
     });
 
 update_year(1900);
